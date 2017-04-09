@@ -25,7 +25,7 @@ threading support. It does not have client-visible components.
 """
 
 from logging import getLogger
-from openssl import *
+from .openssl import *
 
 try:
     import threading
@@ -36,7 +36,7 @@ _logger = getLogger(__name__)
 DO_DEBUG_LOG = False
 
 def tlock_init():
-    if not globals().has_key("threading"):
+    if "threading" not in globals():
         return  # nothing to configure
     # The standard library ssl module's lock implementation is more efficient;
     # do not override it if it has been established

@@ -10,15 +10,15 @@ import gc
 import os
 import errno
 import pprint
-import urllib, urlparse
+import urllib.request, urllib.parse, urllib.error, urllib.parse
 import traceback
 import weakref
 import platform
 import threading
 import time
 import datetime
-import SocketServer
-from SimpleHTTPServer import SimpleHTTPRequestHandler
+import socketserver
+from http.server import SimpleHTTPRequestHandler
 from collections import OrderedDict
 
 import ssl
@@ -59,7 +59,7 @@ class BasicTests(unittest.TestCase):
         # A crude test for the legacy API
         try:
             ssl.sslwrap_simple(socket.socket(AF_INET4_6, socket.SOCK_DGRAM))
-        except IOError, e:
+        except IOError as e:
             if e.errno == 32: # broken pipe when ssl_sock.do_handshake(), this test doesn't care about that
                 pass
             else:
@@ -67,7 +67,7 @@ class BasicTests(unittest.TestCase):
         try:
             ssl.sslwrap_simple(socket.socket(AF_INET4_6,
                                              socket.SOCK_DGRAM)._sock)
-        except IOError, e:
+        except IOError as e:
             if e.errno == 32: # broken pipe when ssl_sock.do_handshake(), this test doesn't care about that
                 pass
             else:
@@ -90,7 +90,7 @@ class BasicSocketTests(unittest.TestCase):
         n = ssl.DTLS_OPENSSL_VERSION_NUMBER
         t = ssl.DTLS_OPENSSL_VERSION_INFO
         s = ssl.DTLS_OPENSSL_VERSION
-        self.assertIsInstance(n, (int, long))
+        self.assertIsInstance(n, (int, int))
         self.assertIsInstance(t, tuple)
         self.assertIsInstance(s, str)
         # Some sanity checks follow
@@ -132,7 +132,7 @@ class BasicSocketTests(unittest.TestCase):
             s = ssl.wrap_socket(socket.socket(AF_INET4_6, socket.SOCK_DGRAM),
                                 cert_reqs=ssl.CERT_NONE,
                                 ciphers="^$:,;?*'dorothyx")
-            with self.assertRaisesRegexp(ssl.SSLError,
+            with self.assertRaisesRegex(ssl.SSLError,
                                          "No cipher can be selected"):
                 s.connect(remote)
         finally:
@@ -281,7 +281,7 @@ class NetworkedTests(unittest.TestCase):
                     count += 1
                     s.do_handshake()
                     break
-                except ssl.SSLError, err:
+                except ssl.SSLError as err:
                     if err.args[0] == ssl.SSL_ERROR_WANT_READ:
                         while True:
                             to = s.get_timeout()
@@ -585,7 +585,7 @@ class AsyncoreEchoServer(threading.Thread):
             def readable(self):
                 while self.socket.pending() > 0:
                     self.handle_read_event()
-                if self._timeout_tracker.has_key(self) and \
+                if self in self._timeout_tracker and \
                   datetime.datetime.now() >= self._timeout_tracker[self]:
                     self._timeout_tracker.pop(self)
                     try:
@@ -601,7 +601,7 @@ class AsyncoreEchoServer(threading.Thread):
             def _do_ssl_handshake(self):
                 try:
                     self.socket.do_handshake()
-                except ssl.SSLError, err:
+                except ssl.SSLError as err:
                     if err.args[0] in (ssl.SSL_ERROR_WANT_READ,
                                        ssl.SSL_ERROR_WANT_WRITE,
                                        ssl.SSL_ERROR_SSL):
@@ -609,7 +609,7 @@ class AsyncoreEchoServer(threading.Thread):
                     elif err.args[0] == ssl.SSL_ERROR_EOF:
                         return self.handle_close()
                     raise
-                except socket.error, err:
+                except socket.error as err:
                     if err.args[0] == errno.ECONNABORTED:
                         return self.handle_close()
                 else:
@@ -633,7 +633,7 @@ class AsyncoreEchoServer(threading.Thread):
                       datetime.datetime.now() + delta
 
             def handle_close(self):
-                if self._timeout_tracker.has_key(self):
+                if self in self._timeout_tracker:
                     self._timeout_tracker.pop(self)
                 self._server._handlers.pop(self)
                 self.close()
@@ -678,7 +678,7 @@ class AsyncoreEchoServer(threading.Thread):
             raise
 
         def reset_timeout(self, handler):
-            if self._handlers.has_key(handler):
+            if handler in self._handlers:
                 self._handlers.pop(handler)
                 self._handlers[handler] = datetime.datetime.now()
 
@@ -686,7 +686,7 @@ class AsyncoreEchoServer(threading.Thread):
             now = datetime.datetime.now()
             while True:
                 try:
-                    handler = self._handlers.__iter__().next()  # oldest handler
+                    handler = next(self._handlers.__iter__())  # oldest handler
                 except StopIteration:
                     break  # there are no more handlers
                 if now > self._handlers[handler] + CONNECTION_TIMEOUT:
@@ -695,7 +695,7 @@ class AsyncoreEchoServer(threading.Thread):
                     break  # the oldest handlers has not yet timed out
 
         def close(self):
-            map(lambda x: x.handle_close(), self._handlers.keys())
+            list(map(lambda x: x.handle_close(), list(self._handlers.keys())))
             assert not self._handlers
             asyncore.dispatcher.close(self)
 
@@ -722,8 +722,7 @@ class AsyncoreEchoServer(threading.Thread):
             self.flag.set()
         while self.active:
             now = datetime.datetime.now()
-            future_timeouts = filter(lambda x: x > now,
-                                     self.timeout_tracker.values())
+            future_timeouts = [x for x in list(self.timeout_tracker.values()) if x > now]
             future_timeouts.append(now + datetime.timedelta(seconds=0.05))
             first_timeout = min(future_timeouts) - now
             asyncore.loop(first_timeout.total_seconds(), count=1)
@@ -737,10 +736,10 @@ class AsyncoreEchoServer(threading.Thread):
 # reordering, but it's good enough for testing on a loopback interface
 class SocketServerHTTPSServer(threading.Thread):
 
-    class HTTPSServerUDP(SocketServer.ThreadingTCPServer):
+    class HTTPSServerUDP(socketserver.ThreadingTCPServer):
 
         def __init__(self, server_address, RequestHandlerClass, certfile):
-            SocketServer.ThreadingTCPServer.__init__(self, server_address,
+            socketserver.ThreadingTCPServer.__init__(self, server_address,
                                                      RequestHandlerClass, False)
             # account for dealing with a datagram socket
             self.socket = ssl.wrap_socket(socket.socket(AF_INET4_6,
@@ -759,7 +758,7 @@ class SocketServerHTTPSServer(threading.Thread):
 
         def server_bind(self):
             """Override server_bind to store the server name."""
-            SocketServer.ThreadingTCPServer.server_bind(self)
+            socketserver.ThreadingTCPServer.server_bind(self)
             host, port = self.socket.getsockname()[:2]
             self.server_name = socket.getfqdn(host)
             self.server_port = port
@@ -794,10 +793,10 @@ class SocketServerHTTPSServer(threading.Thread):
 
             """
             # abandon query parameters
-            path = urlparse.urlparse(path)[2]
-            path = os.path.normpath(urllib.unquote(path))
+            path = urllib.parse.urlparse(path)[2]
+            path = os.path.normpath(urllib.parse.unquote(path))
             words = path.split('/')
-            words = filter(None, words)
+            words = [_f for _f in words if _f]
             path = self.root
             for word in words:
                 drive, word = os.path.splitdrive(word)
@@ -861,10 +860,10 @@ def bad_cert_test(certfile):
                                 certfile=certfile,
                                 ssl_version=ssl.PROTOCOL_DTLSv1)
             s.connect((HOST, server.port))
-        except ssl.SSLError, x:
+        except ssl.SSLError as x:
             if test_support.verbose:
                 sys.stdout.write("\nSSLError is %s\n" % x[1])
-        except socket.error, x:
+        except socket.error as x:
             if test_support.verbose:
                 sys.stdout.write("\nsocket.error is %s\n" % x[1])
         else:
@@ -973,7 +972,7 @@ class ThreadedTests(unittest.TestCase):
         port = server.getsockname()[1]
         server.close()
         s = ssl.wrap_socket(socket.socket(AF_INET4_6, socket.SOCK_DGRAM))
-        self.assertRaisesRegexp(ssl.SSLError,
+        self.assertRaisesRegex(ssl.SSLError,
                                 "The peer address is not reachable",
                                 s.connect, (HOST, port))
 
@@ -1268,7 +1267,7 @@ class ThreadedTests(unittest.TestCase):
                 ('recv_into', _recv_into, True, []),
                 ('recvfrom_into', _recvfrom_into, False, []),
             ]
-            data_prefix = u"PREFIX_"
+            data_prefix = "PREFIX_"
 
             for meth_name, send_meth, expect_success, args in send_methods:
                 indata = data_prefix + meth_name
@@ -1347,7 +1346,7 @@ class ThreadedTests(unittest.TestCase):
                 c.settimeout(0.2)
                 c.connect((HOST, port))
                 # Will attempt handshake and time out
-                self.assertRaisesRegexp(ssl.SSLError, "timed out",
+                self.assertRaisesRegex(ssl.SSLError, "timed out",
                                         ssl.wrap_socket, c)
             finally:
                 c.close()
@@ -1356,7 +1355,7 @@ class ThreadedTests(unittest.TestCase):
                 c.settimeout(0.2)
                 c = ssl.wrap_socket(c)
                 # Will attempt handshake and time out
-                self.assertRaisesRegexp(ssl.SSLError, "timed out",
+                self.assertRaisesRegex(ssl.SSLError, "timed out",
                                         c.connect, (HOST, port))
             finally:
                 c.close()
@@ -1398,12 +1397,12 @@ def test_main(verbose=True):
     do_patch()
     for demux in "platform-native", "routing":
         for AF_INET4_6 in socket.AF_INET, socket.AF_INET6:
-            print "Suite run: demux: %s, protocol: %d" % (demux, AF_INET4_6)
+            print("Suite run: demux: %s, protocol: %d" % (demux, AF_INET4_6))
             hostname_for_protocol(AF_INET4_6)
             res = unittest.main(exit=False).result.wasSuccessful()
             if not res:
-                print "Suite run failed: demux: %s, protocol: %d" % (
-                    demux, AF_INET4_6)
+                print("Suite run failed: demux: %s, protocol: %d" % (
+                    demux, AF_INET4_6))
                 sys.exit(True)
         if not force_routing_demux():
             break

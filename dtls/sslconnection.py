@@ -50,17 +50,17 @@ from os import urandom
 from select import select
 from weakref import proxy
 
-from err import openssl_error, InvalidSocketError
-from err import raise_ssl_error
-from err import SSL_ERROR_WANT_READ, SSL_ERROR_SYSCALL
-from err import ERR_WRONG_VERSION_NUMBER, ERR_COOKIE_MISMATCH, ERR_NO_SHARED_CIPHER
-from err import ERR_NO_CIPHER, ERR_HANDSHAKE_TIMEOUT, ERR_PORT_UNREACHABLE
-from err import ERR_READ_TIMEOUT, ERR_WRITE_TIMEOUT
-from err import ERR_BOTH_KEY_CERT_FILES, ERR_BOTH_KEY_CERT_FILES_SVR, ERR_NO_CERTS
-from x509 import _X509, decode_cert
-from tlock import tlock_init
-from openssl import *
-from util import _Rsrc, _BIO
+from .err import openssl_error, InvalidSocketError
+from .err import raise_ssl_error
+from .err import SSL_ERROR_WANT_READ, SSL_ERROR_SYSCALL
+from .err import ERR_WRONG_VERSION_NUMBER, ERR_COOKIE_MISMATCH, ERR_NO_SHARED_CIPHER
+from .err import ERR_NO_CIPHER, ERR_HANDSHAKE_TIMEOUT, ERR_PORT_UNREACHABLE
+from .err import ERR_READ_TIMEOUT, ERR_WRITE_TIMEOUT
+from .err import ERR_BOTH_KEY_CERT_FILES, ERR_BOTH_KEY_CERT_FILES_SVR, ERR_NO_CERTS
+from .x509 import _X509, decode_cert
+from .tlock import tlock_init
+from .openssl import *
+from .util import _Rsrc, _BIO
 
 _logger = getLogger(__name__)
 
@@ -171,8 +171,8 @@ class _CallbackProxy(object):
     """
 
     def __init__(self, cbm):
-        self.ssl_connection = proxy(cbm.im_self)
-        self.ssl_func = cbm.im_func
+        self.ssl_connection = proxy(cbm.__self__)
+        self.ssl_func = cbm.__func__
 
     def __call__(self, *args, **kwargs):
         return self.ssl_func(self.ssl_connection, *args, **kwargs)
@@ -184,7 +184,7 @@ class SSLContext(object):
         self._ctx = ctx
 
     def set_ciphers(self, ciphers):
-        u'''
+        '''
         s.a. https://www.openssl.org/docs/man1.1.0/apps/ciphers.html
 
         :param str ciphers: Example "AES256-SHA:ECDHE-ECDSA-AES256-SHA", ...
@@ -194,7 +194,7 @@ class SSLContext(object):
         return retVal
 
     def set_sigalgs(self, sigalgs):
-        u'''
+        '''
         s.a. https://www.openssl.org/docs/man1.1.0/ssl/SSL_CTX_set1_sigalgs_list.html
 
         :param str sigalgs: Example "RSA+SHA256", "ECDSA+SHA256", ...
@@ -204,7 +204,7 @@ class SSLContext(object):
         return retVal
 
     def set_curves(self, curves):
-        u''' Set supported curves by name, nid or nist.
+        ''' Set supported curves by name, nid or nist.
 
         :param str | tuple(int) curves: Example "secp384r1:secp256k1", (715, 714), "P-384", "K-409:B-409:K-571", ...
         :return: 1 for success and 0 for failure
@@ -236,7 +236,7 @@ class SSLContext(object):
         return sorted([x.name for x in curves] if bAsName else [x.nid for x in curves])
 
     def set_ecdh_curve(self, curve_name=None):
-        u''' Select a curve to use for ECDH(E) key exchange or set it to auto mode
+        ''' Select a curve to use for ECDH(E) key exchange or set it to auto mode
 
         Used for server only!
 
@@ -255,7 +255,7 @@ class SSLContext(object):
         return retVal
 
     def build_cert_chain(self, flags=SSL_BUILD_CHAIN_FLAG_NONE):
-        u'''
+        '''
         Used for server side only!
 
         :param flags:
@@ -265,7 +265,7 @@ class SSLContext(object):
         return retVal
 
     def set_ssl_logging(self, enable=False, func=_ssl_logging_cb):
-        u''' Enable or disable SSL logging
+        ''' Enable or disable SSL logging
 
         :param True | False enable: Enable or disable SSL logging
         :param func: Callback function for logging
@@ -315,7 +315,7 @@ class SSLConnection(object):
             rsock = self._sock
             BIO_dgram_set_connected(self._wbio.value, peer_address)
         else:
-            from demux import UDPDemux
+            from .demux import UDPDemux
             self._udp_demux = UDPDemux(self._sock)
             rsock = self._udp_demux.get_connection(None)
         if rsock is self._sock:

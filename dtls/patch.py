@@ -41,11 +41,11 @@ from types import MethodType
 from weakref import proxy
 import errno
 
-from sslconnection import SSLConnection, PROTOCOL_DTLS, PROTOCOL_DTLSv1, PROTOCOL_DTLSv1_2
-from sslconnection import DTLS_OPENSSL_VERSION_NUMBER, DTLS_OPENSSL_VERSION, DTLS_OPENSSL_VERSION_INFO
-from sslconnection import SSL_BUILD_CHAIN_FLAG_NONE, SSL_BUILD_CHAIN_FLAG_UNTRUSTED, \
+from .sslconnection import SSLConnection, PROTOCOL_DTLS, PROTOCOL_DTLSv1, PROTOCOL_DTLSv1_2
+from .sslconnection import DTLS_OPENSSL_VERSION_NUMBER, DTLS_OPENSSL_VERSION, DTLS_OPENSSL_VERSION_INFO
+from .sslconnection import SSL_BUILD_CHAIN_FLAG_NONE, SSL_BUILD_CHAIN_FLAG_UNTRUSTED, \
     SSL_BUILD_CHAIN_FLAG_NO_ROOT, SSL_BUILD_CHAIN_FLAG_CHECK, SSL_BUILD_CHAIN_FLAG_IGNORE_ERROR, SSL_BUILD_CHAIN_FLAG_CLEAR_ERROR
-from err import raise_as_ssl_module_error, patch_ssl_errors
+from .err import raise_as_ssl_module_error, patch_ssl_errors
 
 
 def do_patch():
@@ -170,7 +170,7 @@ def _SSLSocket_init(self, sock=None, keyfile=None, certfile=None,
         # see if it's connected
         try:
             socket.getpeername(self)
-        except socket_error, e:
+        except socket_error as e:
             if e.errno != errno.ENOTCONN:
                 raise
             # no, no connection yet

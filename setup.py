@@ -62,9 +62,8 @@ if __name__ == "__main__":
             raise ValueError("Unknown platform")
         prebuilt_path = prebuilt_platform_root + "/" + platform
         config = {"MANIFEST_DIR": prebuilt_path}
-        execfile(prebuilt_path + "/manifest.pycfg", config)
-        top_package_plat_files = map(lambda x: prebuilt_path + "/" + x,
-                                     config["FILES"])
+        exec(compile(open(prebuilt_path + "/manifest.pycfg").read(), prebuilt_path + "/manifest.pycfg", 'exec'), config)
+        top_package_plat_files = [prebuilt_path + "/" + x for x in config["FILES"]]
         # Save top_package_plat_files with the distribution archive
         with open(top_package_plat_files_file, "wb") as fl:
             dump(top_package_plat_files, fl)

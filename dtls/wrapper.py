@@ -35,10 +35,10 @@ from logging import getLogger
 
 import ssl
 import socket
-from patch import do_patch
+from .patch import do_patch
 do_patch()
-from sslconnection import SSLContext, SSL
-import err as err_codes
+from .sslconnection import SSLContext, SSL
+from . import err as err_codes
 
 _logger = getLogger(__name__)
 
@@ -168,7 +168,7 @@ class DtlsSocket(object):
 
     def close(self):
         if self._server_side:
-            for cli in self._clients.keys():
+            for cli in list(self._clients.keys()):
                 cli.close()
         else:
             try:
@@ -250,7 +250,7 @@ class DtlsSocket(object):
             return self._sendto_from_client_side(buf, address)
 
     def _sendto_from_server_side(self, buf, address):
-        for conn, client in self._clients.iteritems():
+        for conn, client in self._clients.items():
             if client.getAddr() == address:
                 return self._clientWrite(conn, buf)
         return 0
@@ -267,7 +267,7 @@ class DtlsSocket(object):
         return bytes_sent
 
     def _getClientReadingSockets(self):
-        return [x for x in self._clients.keys()]
+        return [x for x in list(self._clients.keys())]
 
     def _getAllReadingSockets(self):
         return [self._sock] + self._getClientReadingSockets()

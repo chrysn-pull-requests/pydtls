@@ -38,9 +38,9 @@ import socket
 from logging import getLogger
 from os import path
 from datetime import timedelta
-from err import openssl_error
-from err import SSL_ERROR_NONE
-from util import _EC_KEY, _BIO
+from .err import openssl_error
+from .err import SSL_ERROR_NONE
+from .util import _EC_KEY, _BIO
 import ctypes
 from ctypes import CDLL
 from ctypes import CFUNCTYPE
@@ -193,7 +193,7 @@ class _EllipticCurve(object):
 
 
 def get_elliptic_curves():
-    u''' Return the available curves. If not yet loaded, then load them once.
+    ''' Return the available curves. If not yet loaded, then load them once.
 
     :rtype: list
     '''
@@ -201,7 +201,7 @@ def get_elliptic_curves():
 
 
 def get_elliptic_curve(name):
-    u''' Return the curve from the given name.
+    ''' Return the curve from the given name.
 
     :rtype: _EllipticCurve
     '''
@@ -235,7 +235,7 @@ class FuncParam(object):
     def __init__(self, value):
         self._as_parameter = c_void_p(value)
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self._as_parameter)
 
     @property
@@ -507,7 +507,7 @@ def raise_ssl_error(result, func, args, ssl):
         errqueue.append((err, buf.value))
     _logger.debug("SSL error raised: ssl_error: %d, result: %d, " +
                   "errqueue: %s, func_name: %s",
-                  ssl_error, result, errqueue, func.func_name)
+                  ssl_error, result, errqueue, func.__name__)
     raise openssl_error()(ssl_error, errqueue, result, func, args)
 
 def find_ssl_arg(args):
@@ -537,7 +537,7 @@ def _make_function(name, lib, args, export=True, errcheck="default"):
     assert len(args)
 
     def type_subst(map_type):
-        if _subst.has_key(map_type):
+        if map_type in _subst:
             return _subst[map_type]
         return map_type
 
@@ -548,7 +548,7 @@ def _make_function(name, lib, args, export=True, errcheck="default"):
         pointer_return = True
     else:
         pointer_return = False
-    if not _sigs.has_key(sig):
+    if sig not in _sigs:
         _sigs[sig] = CFUNCTYPE(*sig)
     if export:
         glbl_name = name
@@ -560,7 +560,7 @@ def _make_function(name, lib, args, export=True, errcheck="default"):
                                           i[3] if len(i) > 3 else None)
                                          [:3 if len(i) > 3 else 2]
                                          for i in args[1:]))
-    func.func_name = name
+    func.__name__ = name
     if pointer_return:
         func.ret_type = args[0][0]  # for fix-up during error checking protocol
     if errcheck == "default":
@@ -639,7 +639,7 @@ __all__ = [
     "get_elliptic_curves",
 ]  # note: the following map adds to this list
 
-map(lambda x: _make_function(*x), (
+list(map(lambda x: _make_function(*x), (
     ("SSL_library_init", libssl,
      ((c_int, "ret"),)),
     ("SSL_load_error_strings", libssl,
@@ -809,7 +809,7 @@ map(lambda x: _make_function(*x), (
      ((c_int, "ret"), (POINTER(c_char), "name")), True, None),
     ("EC_curve_nid2nist", libcrypto,
      ((c_char_p, "ret"), (c_int, "nid")), True, None),
-    ))
+    )))
 
 #
 # Wrappers - functions generally equivalent to OpenSSL library macros
@@ -1088,7 +1088,7 @@ def decode_ASN1_STRING(asn1_string):
     utf8_buf_ptr = POINTER(c_ubyte)()
     res_len = _ASN1_STRING_to_UTF8(byref(utf8_buf_ptr), asn1_string)
     try:
-        return unicode(''.join([chr(i) for i in utf8_buf_ptr[:res_len]]),
+        return str(''.join([chr(i) for i in utf8_buf_ptr[:res_len]]),
                        'utf-8')
     finally:
         CRYPTO_free(utf8_buf_ptr)
@@ -1165,5 +1165,5 @@ def SSL_get_peer_cert_chain(ssl):
     if num:
         # why not use sk_value(): because it doesn't cast correct in this case?!
         # certs = [(sk_value(stack, i)) for i in xrange(num)]
-        certs = [X509(_sk_value(stack, i)) for i in xrange(num)]
+        certs = [X509(_sk_value(stack, i)) for i in range(num)]
     return stack, num, certs

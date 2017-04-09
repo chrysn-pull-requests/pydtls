@@ -84,7 +84,7 @@ fill = urandom(CHUNK_SIZE)
 def transfer_out(sock, listen_sock=None, marker=False):
     max_i_len = 10
     start_char = "t" if marker else "s"
-    for i in xrange(CHUNKS):
+    for i in range(CHUNKS):
         prefix = start_char + str(i) + ":"
         pad_prefix = prefix + "b" * (max_i_len - len(prefix))
         message = pad_prefix + fill[:CHUNK_SIZE - max_i_len - 1] + "e"
@@ -106,7 +106,7 @@ def transfer_out(sock, listen_sock=None, marker=False):
         if not i % CHUNKS_PER_DOT:
             sys.stdout.write('.')
             sys.stdout.flush()
-    print
+    print()
 
 def transfer_in(sock, listen_sock=None):
     drops = 0
@@ -168,7 +168,7 @@ def transfer_in(sock, listen_sock=None):
             sys.stdout.flush()
         i += 1
     drops += CHUNKS - 1 - pack_seq
-    print
+    print()
     return drops
 
 #
@@ -260,7 +260,7 @@ def make_client_manager():
     # Create the global client manager class in servers configured as client
     # managers
     class ClientManager(object):
-        from Queue import Queue
+        from queue import Queue
 
         queue = Queue()
         clients = -1  # creator does not count
@@ -324,16 +324,16 @@ def remote_client(manager_address):
     manager = Manager(manager_address, COMM_KEY)
     manager.connect()
     queue = manager.get_queue()
-    print "Client connected; waiting for job..."
+    print("Client connected; waiting for job...")
     while True:
         command = queue.get()
         if command == "STOP":
             break
         command = command[:-1] + [(manager_address[0], command[-1][1])]
-        print "Starting job: " + str(command)
+        print("Starting job: " + str(command))
         drops = client(*command)
-        print "%d drops" % drops
-        print "Job completed; waiting for next job..."
+        print("%d drops" % drops)
+        print("Job completed; waiting for next job...")
 
 #
 # Test runner
@@ -349,7 +349,7 @@ def run_test(server_args, client_args, port):
         # bind to loopback only, for local clients
         listen_addr = 'localhost', port
     svr = iter(server(*server_args, listen_addr=listen_addr))
-    listen_addr = svr.next()
+    listen_addr = next(svr)
     listen_addr = 'localhost', listen_addr[1]
     client_args = list(client_args)
     client_args.append(listen_addr)
@@ -360,19 +360,19 @@ def run_test(server_args, client_args, port):
         proc.start()
     in_size = CHUNK_SIZE * CHUNKS / 2**20
     out_size = CHUNK_SIZE * CHUNKS / 2**20
-    print "Starting inbound: %dMiB" % in_size
-    svr_in_time, drops = svr.next()
-    print "Inbound: %.3f seconds, %dMiB/s, %d drops" % (
-        svr_in_time, in_size / svr_in_time, drops)
-    print "Starting outbound: %dMiB" % out_size
-    svr_out_time = svr.next()
-    print "Outbound: %.3f seconds, %dMiB/s" % (
-        svr_out_time, out_size / svr_out_time)
+    print("Starting inbound: %dMiB" % in_size)
+    svr_in_time, drops = next(svr)
+    print("Inbound: %.3f seconds, %dMiB/s, %d drops" % (
+        svr_in_time, in_size / svr_in_time, drops))
+    print("Starting outbound: %dMiB" % out_size)
+    svr_out_time = next(svr)
+    print("Outbound: %.3f seconds, %dMiB/s" % (
+        svr_out_time, out_size / svr_out_time))
     if not QUEUE:
         proc.join()
-    print "Combined: %.3f seconds, %dMiB/s" % (
+    print("Combined: %.3f seconds, %dMiB/s" % (
         svr_out_time + svr_in_time,
-        (in_size + out_size) / (svr_in_time + svr_out_time))
+        (in_size + out_size) / (svr_in_time + svr_out_time)))
 
 #
 # Main entry point
@@ -419,16 +419,16 @@ if __name__ == "__main__":
         }
     do_patch()
     while True:
-        print "\nSelect protocol:\n"
+        print("\nSelect protocol:\n")
         for key in sorted(selector):
-            print "\t" + str(key) + ": " + selector[key]
+            print("\t" + str(key) + ": " + selector[key])
         try:
-            choice = raw_input("\nProtocol: ")
+            choice = input("\nProtocol: ")
             choice = int(choice)
             if choice < 0 or choice >= len(selector):
                 raise ValueError("Invalid selection input")
         except (ValueError, OverflowError):
-            print "Invalid selection input"
+            print("Invalid selection input")
             continue
         except EOFError:
             break

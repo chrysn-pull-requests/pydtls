@@ -482,16 +482,14 @@ class TestSequenceMeta(type):
             return test
 
         for testcase in tests:
-            _case, _input, _result = testcase.itervalues()
+            _case, _input, _result = iter(testcase.values())
             test_name = "test_%s" % _case['name'].lower().replace(' ', '_')
             dict[test_name] = gen_test(_case, _input, _result)
 
         return type.__new__(mcs, name, bases, dict)
 
 
-class WrapperTests(unittest.TestCase):
-    __metaclass__ = TestSequenceMeta
-
+class WrapperTests(unittest.TestCase, metaclass=TestSequenceMeta):
     def test_build_cert_chain(self):
         steps = [ssl.SSL_BUILD_CHAIN_FLAG_NONE, ssl.SSL_BUILD_CHAIN_FLAG_NO_ROOT]
         chatty, connectionchatty = CHATTY, CHATTY_CLIENT
@@ -584,7 +582,7 @@ class WrapperTests(unittest.TestCase):
 
         if chatty or connectionchatty:
             sys.stdout.write("\nTestcase: test_ecdh_curve\n")
-        for step, tmp in steps.iteritems():
+        for step, tmp in steps.items():
             if chatty or connectionchatty:
                 sys.stdout.write("\n Subcase: %s\n" % step)
             server_curve, client_curve, result = tmp
