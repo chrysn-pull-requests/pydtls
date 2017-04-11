@@ -24,6 +24,9 @@ from collections import OrderedDict
 import ssl
 from dtls import do_patch, force_routing_demux, reset_default_demux
 
+from dtls.test.test_perf import AF_INET4_6, CERTFILE
+from dtls.test.unit_wrapper import ISSUER_CERTFILE
+
 HOST = "localhost"
 CONNECTION_TIMEOUT = datetime.timedelta(seconds=30)
 
