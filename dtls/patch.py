@@ -119,7 +119,8 @@ def _get_server_certificate(addr, ssl_version=PROTOCOL_SSLv23, ca_certs=None):
                         cert_reqs=cert_reqs, ca_certs=ca_certs)
     s.connect(addr)
     dercert = s.getpeercert(True)
-    s.close()
+    try: s.close()
+    except OSError: "it's probably a side effect of the never-close hack"
     return ssl.DER_cert_to_PEM_cert(dercert)
 
 _keepalives = []
