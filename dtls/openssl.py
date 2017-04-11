@@ -921,7 +921,7 @@ def SSL_CTX_set_cookie_cb(ctx, generate, verify):
     def py_verify_cookie_cb(ssl, cookie, cookie_len):
         _logger.debug("Verifying cookie: %s", cookie[:cookie_len])
         try:
-            verify(SSL(ssl), ''.join([chr(i) for i in cookie[:cookie_len]]))
+            verify(SSL(ssl), bytes(cookie[:cookie_len]))
         except:
             _logger.debug("Cookie verification failed")
             return 0
@@ -1088,8 +1088,7 @@ def decode_ASN1_STRING(asn1_string):
     utf8_buf_ptr = POINTER(c_ubyte)()
     res_len = _ASN1_STRING_to_UTF8(byref(utf8_buf_ptr), asn1_string)
     try:
-        return str(''.join([chr(i) for i in utf8_buf_ptr[:res_len]]),
-                       'utf-8')
+        return bytes(utf8_buf_ptr[:res_len]) # or maybe .decode('utf8')? depends on what x509 will do with it
     finally:
         CRYPTO_free(utf8_buf_ptr)
 
@@ -1112,7 +1111,7 @@ def BIO_read(bio, length):
 def BIO_get_mem_data(bio):
     buf = POINTER(c_ubyte)()
     res_len = _BIO_ctrl(bio, BIO_CTRL_INFO, 0, byref(buf))
-    return ''.join([chr(i) for i in buf[:res_len]])
+    return bytes(buf[:res_len])
 
 def ASN1_TIME_print(asn1_time):
     bio = _BIO(BIO_new(BIO_s_mem()))

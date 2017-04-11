@@ -501,11 +501,6 @@ class SSLConnection(object):
         return self._get_cookie(ssl)
 
     def _verify_cookie_cb(self, ssl, cookie):
-        # cookie gets passed in as str, while it really should be passed in as
-        # bytes. something along the way (C bindings?) interpreted the cooie as
-        # latin1, so at least it can be encoded in there again.
-        cookie = cookie.encode('latin1')
-
         if self._get_cookie(ssl) != cookie:
             raise Exception("DTLS cookie mismatch")
 
