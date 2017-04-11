@@ -46,7 +46,7 @@ import socket
 import hmac
 import datetime
 from logging import getLogger
-from os import urandom
+from os import urandom, fsencode
 from select import select
 from weakref import proxy
 
@@ -385,15 +385,15 @@ class SSLConnection(object):
         # corruption when packet loss occurs
         SSL_CTX_set_options(self._ctx.value, SSL_OP_NO_COMPRESSION)
         if self._certfile:
-            SSL_CTX_use_certificate_chain_file(self._ctx.value, self._certfile)
+            SSL_CTX_use_certificate_chain_file(self._ctx.value, fsencode(self._certfile))
         if self._keyfile:
-            SSL_CTX_use_PrivateKey_file(self._ctx.value, self._keyfile,
+            SSL_CTX_use_PrivateKey_file(self._ctx.value, fsencode(self._keyfile),
                                         SSL_FILE_TYPE_PEM)
         if self._ca_certs:
-            SSL_CTX_load_verify_locations(self._ctx.value, self._ca_certs, None)
+            SSL_CTX_load_verify_locations(self._ctx.value, fsencode(self._ca_certs), None)
         if self._ciphers:
             try:
-                SSL_CTX_set_cipher_list(self._ctx.value, self._ciphers)
+                SSL_CTX_set_cipher_list(self._ctx.value, self._ciphers.encode('ascii'))
             except openssl_error() as err:
                 raise_ssl_error(ERR_NO_CIPHER, err)
         if self._user_config_ssl_ctx:

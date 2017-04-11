@@ -92,7 +92,7 @@ class BasicSocketTests(unittest.TestCase):
         s = ssl.DTLS_OPENSSL_VERSION
         self.assertIsInstance(n, (int, int))
         self.assertIsInstance(t, tuple)
-        self.assertIsInstance(s, str)
+        self.assertIsInstance(s, bytes)
         # Some sanity checks follow
         # >= 1.0.2
         self.assertGreaterEqual(n, 0x10002000)
@@ -111,7 +111,7 @@ class BasicSocketTests(unittest.TestCase):
         self.assertLessEqual(status, 15)
         # Version string as returned by OpenSSL, the format might change
         self.assertTrue(
-            s.startswith("OpenSSL {:d}.{:d}.{:d}".format(major, minor, fix)),
+            s.decode('ascii').startswith("OpenSSL {:d}.{:d}.{:d}".format(major, minor, fix)),
             (s, t))
 
     def test_ciphers(self):
