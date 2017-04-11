@@ -55,6 +55,7 @@ def handle_error(prefix):
 
 class BasicTests(unittest.TestCase):
 
+    @unittest.skipIf(sys.version_info >= (3,), "Old API not supported on Python 3 any more")
     def test_sslwrap_simple(self):
         # A crude test for the legacy API
         try:
