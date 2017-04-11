@@ -34,7 +34,7 @@ has the following effects:
       PROTOCOL_DTLSv1 for the parameter ssl_version is supported
 """
 
-from socket import socket, getaddrinfo, _delegate_methods, error as socket_error
+from socket import socket, getaddrinfo, error as socket_error
 from socket import AF_INET, SOCK_STREAM, SOCK_DGRAM, SOL_SOCKET, SO_TYPE
 from ssl import PROTOCOL_SSLv23, CERT_NONE
 from types import MethodType
@@ -164,12 +164,6 @@ def _SSLSocket_init(self, sock=None, keyfile=None, certfile=None,
         socket.__init__(self, **_sockclone_kwargs(sock))
     else:
         socket.__init__(self, **_sockclone_kwargs(sock.get_socket(True)))
-    # Copy instance initialization from SSLSocket class
-    for attr in _delegate_methods:
-        try:
-            delattr(self, attr)
-        except AttributeError:
-            pass
 
     if certfile and not keyfile:
         keyfile = certfile
