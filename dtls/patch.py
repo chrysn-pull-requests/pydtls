@@ -122,6 +122,12 @@ def _get_server_certificate(addr, ssl_version=PROTOCOL_SSLv23, ca_certs=None):
     s.close()
     return ssl.DER_cert_to_PEM_cert(dercert)
 
+_keepalives = []
+def _sockclone_kwargs(old):
+    """Replace socket(_sock=old._sock) with socket(**_sockclone_kwargs(old))"""
+    _keepalives.append(old) # old socket would be gc'd and implicitly closed otherwise
+    return dict(family=old.family, type=old.type, proto=old.proto, fileno=old.fileno())
+
 def _SSLSocket_init(self, sock=None, keyfile=None, certfile=None,
                     server_side=False, cert_reqs=CERT_NONE,
                     ssl_version=PROTOCOL_DTLS, ca_certs=None,
@@ -155,9 +161,9 @@ def _SSLSocket_init(self, sock=None, keyfile=None, certfile=None,
                                     _context=_context)
     # DTLS code paths: datagram socket and newly accepted DTLS connection
     if is_datagram:
-        socket.__init__(self, _sock=sock._sock)
+        socket.__init__(self, **_sockclone_kwargs(sock))
     else:
-        socket.__init__(self, _sock=sock.get_socket(True)._sock)
+        socket.__init__(self, **_sockclone_kwargs(sock.get_socket(True)))
     # Copy instance initialization from SSLSocket class
     for attr in _delegate_methods:
         try:
@@ -225,7 +231,7 @@ def _SSLSocket_listen(self, ignored):
         raise ValueError("attempt to listen on connected SSLSocket!")
     if self._sslobj:
         return
-    self._sslobj = SSLConnection(socket(_sock=self._sock),
+    self._sslobj = SSLConnection(socket(**_sockclone_kwargs(self)),
                                  self.keyfile, self.certfile, True,
                                  self.cert_reqs, self.ssl_version,
                                  self.ca_certs,
@@ -255,7 +261,7 @@ def _SSLSocket_accept(self):
 def _SSLSocket_real_connect(self, addr, return_errno):
     if self._connected:
         raise ValueError("attempt to connect already-connected SSLSocket!")
-    self._sslobj = SSLConnection(socket(_sock=self._sock),
+    self._sslobj = SSLConnection(socket(**_sockclone_kwargs(self)),
                                  self.keyfile, self.certfile, False,
                                  self.cert_reqs, self.ssl_version,
                                  self.ca_certs,
