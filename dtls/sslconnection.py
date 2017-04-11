@@ -306,7 +306,7 @@ class SSLConnection(object):
     _rnd_key = urandom(16)
 
     def _init_server(self, peer_address):
-        if self._sock.type != socket.SOCK_DGRAM:
+        if self._sock.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE) != socket.SOCK_DGRAM:
             raise InvalidSocketError("sock must be of type SOCK_DGRAM")
 
         self._wbio = _BIO(BIO_new_dgram(self._sock.fileno(), BIO_NOCLOSE))

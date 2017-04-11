@@ -66,7 +66,7 @@ class UDPDemux(object):
                            datagram socket
         """
 
-        if datagram_socket.type != socket.SOCK_DGRAM:
+        if datagram_socket.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE) != socket.SOCK_DGRAM:
             raise InvalidSocketError("datagram_socket is not of " +
                                      "type SOCK_DGRAM")
         try:

@@ -35,7 +35,7 @@ has the following effects:
 """
 
 from socket import socket, getaddrinfo, _delegate_methods, error as socket_error
-from socket import AF_INET, SOCK_STREAM, SOCK_DGRAM
+from socket import AF_INET, SOCK_STREAM, SOCK_DGRAM, SOL_SOCKET, SO_TYPE
 from ssl import PROTOCOL_SSLv23, CERT_NONE
 from types import MethodType
 from weakref import proxy
@@ -135,7 +135,8 @@ def _SSLSocket_init(self, sock=None, keyfile=None, certfile=None,
     is_connection = is_datagram = False
     if isinstance(sock, SSLConnection):
         is_connection = True
-    elif hasattr(sock, "type") and sock.type == SOCK_DGRAM:
+    # Can't use sock.type as other flags (such as SOCK_NONBLOCK) get mixed in.
+    elif hasattr(sock, "getsockopt") and sock.getsockopt(SOL_SOCKET, SO_TYPE) == SOCK_DGRAM:
         is_datagram = True
     if not is_connection and not is_datagram:
         # Non-DTLS code path
