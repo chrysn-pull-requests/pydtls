@@ -434,18 +434,18 @@ if not py_inet_pton:
 def inet_ntop(address_family, packed_ip):
     if py_inet_ntop:
         return py_inet_ntop(address_family,
-                            array.array('I', packed_ip).tostring())
+                            array.array('I', packed_ip).tobytes())
     if wsa_inet_ntop:
         string_buf = create_string_buffer(47)
         wsa_inet_ntop(address_family, packed_ip,
                       string_buf, sizeof(string_buf))
         if not string_buf.value:
             raise ValueError("wsa_inet_ntop failed with: %s" %
-                             array.array('I', packed_ip).tostring())
+                             array.array('I', packed_ip).tobytes())
         return string_buf.value
     if address_family == socket.AF_INET6:
         raise ValueError("Platform does not support IPv6")
-    return socket.inet_ntoa(array.array('I', packed_ip).tostring())
+    return socket.inet_ntoa(array.array('I', packed_ip).tobytes())
 
 def inet_pton(address_family, string_ip):
     if address_family == socket.AF_INET6:
